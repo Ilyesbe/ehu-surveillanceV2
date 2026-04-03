@@ -11,34 +11,48 @@ interface Props {
 }
 
 export default function DashboardFilters({ maladies, communes, filters, onChange }: Props) {
-  const select = "h-8 px-3 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#1B4F8A] bg-white"
-
   return (
-    <div className="flex gap-3 flex-wrap">
-      <select
-        value={filters.days}
-        onChange={e => onChange({ ...filters, days: e.target.value })}
-        className={select}
-      >
-        <option value="7">7 derniers jours</option>
-        <option value="30">30 derniers jours</option>
-        <option value="90">90 derniers jours</option>
-        <option value="365">12 derniers mois</option>
-      </select>
+    <div className="flex gap-2 flex-wrap">
+      {/* Period quick-select */}
+      <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+        {[
+          { value: "7", label: "7j" },
+          { value: "30", label: "30j" },
+          { value: "90", label: "90j" },
+          { value: "365", label: "1an" },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange({ ...filters, days: opt.value })}
+            className={`px-3 h-[30px] text-[11px] font-semibold transition-all border-r border-gray-200 last:border-r-0 ${
+              filters.days === opt.value
+                ? "bg-[#1B4F8A] text-white"
+                : "bg-white text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <select
         value={filters.maladieId}
         onChange={e => onChange({ ...filters, maladieId: e.target.value })}
-        className={select}
+        className="input h-[30px] text-[11px] font-medium w-auto min-w-[140px]"
+        style={{ paddingRight: "28px" }}
       >
-        <option value="">Toutes les maladies</option>
+        <option value="">Toutes maladies</option>
         {maladies.map(m => <option key={m.id} value={m.id}>{m.nom}</option>)}
       </select>
+
       <select
         value={filters.communeId}
         onChange={e => onChange({ ...filters, communeId: e.target.value })}
-        className={select}
+        className="input h-[30px] text-[11px] font-medium w-auto min-w-[140px]"
+        style={{ paddingRight: "28px" }}
       >
-        <option value="">Toutes les communes</option>
+        <option value="">Toutes communes</option>
         {communes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
       </select>
     </div>

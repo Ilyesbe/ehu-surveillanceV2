@@ -35,9 +35,12 @@ export interface Patient {
 export interface Maladie {
   id: string
   nom: string
-  codeMdo: string
+  codeCim10: string
+  nomCourt?: string | null
   categorie: string
-  seuilAlerte: number
+  seuilDefaut?: number | null
+  hasFicheSpecifique: boolean
+  ficheSpecifiqueSlug?: string | null
   isActive: boolean
 }
 

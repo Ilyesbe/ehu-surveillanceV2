@@ -13,6 +13,12 @@ interface Notification {
   createdAt: string
 }
 
+const TYPE_COLORS: Record<string, string> = {
+  seuil_depasse: "#DC2626",
+  nouveau_cas: "#1B4F8A",
+  investigation: "#D97706",
+}
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -31,7 +37,7 @@ export default function NotificationBell() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchNotifications()
-    const interval = setInterval(() => { void fetchNotifications() }, 30000) // poll every 30s
+    const interval = setInterval(() => { void fetchNotifications() }, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -66,49 +72,68 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        aria-label="Notifications"
       >
-        <Bell size={20} className="text-gray-500" />
+        <Bell size={18} className="text-gray-500" />
         {unreadCount > 0 && (
-          <span className="badge-pulse absolute top-1 right-1 w-4 h-4 rounded-full text-white text-xs flex items-center justify-center font-bold" style={{ backgroundColor: "#E74C3C", fontSize: "10px" }}>
+          <span
+            className="badge-pulse absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-white flex items-center justify-center font-bold"
+            style={{ backgroundColor: "#DC2626", fontSize: "9px" }}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="animate-scale-in absolute right-0 top-10 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+        <div className="animate-scale-in absolute right-0 top-11 w-[340px] bg-white rounded-xl border border-gray-200 z-50 overflow-hidden" style={{ boxShadow: "var(--shadow-xl)" }}>
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <span className="text-sm font-semibold text-gray-800">Notifications</span>
             <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-gray-800">Notifications</span>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-xs text-blue-500 hover:underline flex items-center gap-1">
-                  <Check size={12} /> Tout lire
+                <span className="badge" style={{ backgroundColor: "var(--danger-light)", color: "var(--danger)", fontSize: "10px" }}>
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {unreadCount > 0 && (
+                <button onClick={markAllRead} className="btn btn-ghost btn-sm text-[11px]">
+                  <Check size={11} /> Tout lire
                 </button>
               )}
-              <button onClick={() => setOpen(false)}><X size={16} className="text-gray-400" /></button>
+              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 transition-colors">
+                <X size={14} className="text-gray-400" />
+              </button>
             </div>
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          {/* List */}
+          <div className="max-h-[360px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-400">Aucune notification</div>
+              <div className="px-4 py-10 text-center">
+                <Bell size={24} className="text-gray-200 mx-auto mb-2" />
+                <p className="text-[13px] text-gray-400">Aucune notification</p>
+              </div>
             ) : (
               notifications.map(n => (
                 <div
                   key={n.id}
                   onClick={() => !n.isRead && markRead(n.id)}
                   className="px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors"
-                  style={{ backgroundColor: n.isRead ? "white" : "#EEF4FF" }}
+                  style={{ backgroundColor: n.isRead ? "white" : "var(--brand-50)" }}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                      style={{ backgroundColor: n.isRead ? "transparent" : (TYPE_COLORS[n.type] ?? "var(--brand-500)") }}
+                    />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{n.titre}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">{formatDateTime(n.createdAt)}</p>
+                      <p className="text-[12px] font-semibold text-gray-800 truncate">{n.titre}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                      <p className="text-[10px] text-gray-400 mt-1 font-medium">{formatDateTime(n.createdAt)}</p>
                     </div>
-                    {!n.isRead && (
-                      <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ backgroundColor: "#1B4F8A" }} />
-                    )}
                   </div>
                 </div>
               ))

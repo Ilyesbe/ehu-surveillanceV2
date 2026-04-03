@@ -59,7 +59,7 @@ export default function AlertesPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetchAlertes() }, [statut]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    fetch("/api/maladies").then(r => r.json()).then(setMaladies).catch(console.error)
+    fetch("/api/maladies").then(r => r.json()).then(d => setMaladies(d.maladies ?? d)).catch(console.error)
   }, [])
 
   const submitAlerte = async (e: React.FormEvent) => {

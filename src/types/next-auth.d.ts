@@ -6,7 +6,9 @@ declare module "next-auth" {
       id: string
       email: string
       name: string
-      role: string
+      role: string          // primary role slug (backward compat)
+      roles: string[]       // all role slugs
+      permissions: string[] // all permission slugs
       etablissementId?: string
       wilayadId?: string
     }

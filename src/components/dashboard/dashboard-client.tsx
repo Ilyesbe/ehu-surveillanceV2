@@ -9,8 +9,17 @@ import StatCards from "./stat-cards"
 import { DashboardSkeleton, Sk } from "@/components/shared/skeleton"
 import { AlertCircle, RefreshCw } from "lucide-react"
 
-// Dynamic import for map (no SSR)
-const EpidemicMap = dynamic(() => import("@/components/maps/epidemic-map"), { ssr: false, loading: () => <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-xl"><p className="text-sm text-gray-400">Chargement de la carte...</p></div> })
+const EpidemicMap = dynamic(() => import("@/components/maps/epidemic-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg">
+      <div className="text-center">
+        <div className="w-6 h-6 rounded-full border-2 border-gray-200 border-t-[#1B4F8A] animate-spinner mx-auto mb-2" />
+        <p className="text-xs text-gray-400">Chargement de la carte...</p>
+      </div>
+    </div>
+  ),
+})
 
 interface Maladie { id: string; nom: string }
 interface Commune { id: string; nom: string }
@@ -55,45 +64,45 @@ export default function DashboardClient({ maladies, communes, userName }: Props)
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Tableau de Bord</h1>
-          <p className="text-sm text-gray-500 mt-1">Bienvenue, {userName} — Surveillance épidémiologique en temps réel</p>
+          <h1 className="page-title">Tableau de Bord</h1>
+          <p className="page-subtitle">Bienvenue, {userName}</p>
         </div>
         <DashboardFilters maladies={maladies} communes={communes} filters={filters} onChange={setFilters} />
       </div>
 
-      {/* Full skeleton on initial load */}
       {loading && !data ? (
         <DashboardSkeleton />
       ) : error ? (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-          <AlertCircle size={36} className="text-red-300 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium mb-1">Erreur de chargement</p>
-          <p className="text-sm text-gray-400 mb-4">Impossible de récupérer les données du tableau de bord</p>
-          <button onClick={fetchData} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
-            <RefreshCw size={15} /> Réessayer
+        <div className="card p-16 text-center">
+          <AlertCircle size={32} className="text-gray-300 mx-auto mb-3" />
+          <p className="text-sm font-medium text-gray-600 mb-1">Erreur de chargement</p>
+          <p className="text-xs text-gray-400 mb-5">Impossible de récupérer les données</p>
+          <button onClick={fetchData} className="btn btn-secondary btn-sm">
+            <RefreshCw size={13} /> Réessayer
           </button>
         </div>
       ) : (
-        <>
+        <div className="space-y-4">
           {/* Stat Cards */}
-          <div className="mb-6">
-            <StatCards stats={data!.stats} />
-          </div>
+          <StatCards stats={data!.stats} />
 
           {/* Map + Disease Distribution */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Carte Épidémique — Wilaya d&apos;Oran</p>
-              <div style={{ height: "320px" }}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="card-title">Carte Épidémique</p>
+                <span className="text-[11px] text-gray-400 font-medium">Wilaya d&apos;Oran</span>
+              </div>
+              <div className="rounded-lg overflow-hidden" style={{ height: "340px" }}>
                 <EpidemicMap markers={data!.mapMarkers} />
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Répartition par Maladie</p>
+            <div className="card p-5">
+              <p className="card-title mb-4">Répartition par Maladie</p>
               {loading ? (
-                <Sk w="100%" h={256} rounded={8} />
+                <Sk w="100%" h={280} rounded={8} />
               ) : (
                 <DiseaseDistribution data={data!.diseaseDistribution} />
               )}
@@ -101,17 +110,20 @@ export default function DashboardClient({ maladies, communes, userName }: Props)
           </div>
 
           {/* Epidemic Curve */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <p className="text-sm font-semibold text-gray-700 mb-3">
-              Courbe Épidémique — {filters.days} derniers jours
-            </p>
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="card-title">Courbe Épidémique</p>
+              <span className="badge text-[11px]" style={{ backgroundColor: "var(--brand-50)", color: "var(--brand-500)" }}>
+                {filters.days} derniers jours
+              </span>
+            </div>
             {loading ? (
-              <Sk w="100%" h={224} rounded={8} />
+              <Sk w="100%" h={260} rounded={8} />
             ) : (
               <EpidemicCurve data={data!.epidemicCurve} />
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )

@@ -12,12 +12,13 @@ export default async function DashboardLayout({
   const session = await auth()
   if (!session) redirect("/login")
 
-  const userName = session.user.name ?? session.user.email
-  const userRole = session.user.role
+  const userName = session.user.name ?? session.user.email ?? ""
+  const userRole = session.user.role ?? ""
+  const permissions: string[] = session.user.permissions ?? []
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#F7F8FA" }}>
-      <Sidebar userRole={userRole} userName={userName} />
+      <Sidebar userName={userName} userRole={userRole} permissions={permissions} />
       <Topbar userName={userName} />
       <main className="pt-14 min-h-screen lg:ml-64">
         <div className="p-4 lg:p-6 animate-fade-in-up">{children}</div>

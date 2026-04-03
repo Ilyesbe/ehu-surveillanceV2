@@ -12,7 +12,7 @@ export async function GET() {
   const seuils = await prisma.seuilAlerte.findMany({
     where: { isActive: true },
     include: {
-      maladie: { select: { nom: true, codeMdo: true } },
+      maladie: { select: { nom: true, codeCim10: true } },
       commune: { select: { nom: true } },
       wilaya: { select: { nom: true } },
     },
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       configuredBy: session.user.id,
     },
     include: {
-      maladie: { select: { nom: true, codeMdo: true } },
+      maladie: { select: { nom: true, codeCim10: true } },
       commune: { select: { nom: true } },
       wilaya: { select: { nom: true } },
     },

@@ -54,7 +54,7 @@ export interface CasPdfData {
   codeCas: string
   statut: string
   maladie: string
-  codeMdo: string
+  codeCim10: string
   patient: {
     identifiant: string
     firstName: string
@@ -124,7 +124,7 @@ export async function exportCasPdf(cas: CasPdfData) {
   autoTable(doc, {
     startY: y,
     body: [
-      ["Maladie MDO", cas.maladie, "Code MDO", cas.codeMdo],
+      ["Maladie", cas.maladie, "Code CIM-10", cas.codeCim10],
       ["Début Symptômes", cas.dateDebutSymptomes, "Date Diagnostic", cas.dateDiagnostic],
       ["Mode Confirmation", cas.modeConfirmation, "Service", cas.service || "—"],
       ["Établissement", cas.etablissement || "—", "Commune Cas", cas.commune || "—"],

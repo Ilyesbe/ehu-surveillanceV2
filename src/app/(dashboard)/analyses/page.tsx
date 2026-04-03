@@ -36,7 +36,7 @@ export default function AnalysesPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void fetchData() }, [fetchData])
-  useEffect(() => { fetch("/api/maladies").then(r => r.json()).then(setMaladies).catch(console.error) }, [])
+  useEffect(() => { fetch("/api/maladies").then(r => r.json()).then(d => setMaladies(d.maladies ?? d)).catch(console.error) }, [])
 
   const select = "h-8 px-3 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#1B4F8A] bg-white"
 

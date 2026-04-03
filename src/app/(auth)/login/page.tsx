@@ -7,23 +7,14 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@/utils/cn"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, AlertCircle, Loader2, Shield } from "lucide-react"
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z.string().min(8, "Minimum 8 caractères"),
-  role: z.enum(["medecin", "epidemiologiste", "admin"], {
-    error: "Veuillez sélectionner un rôle",
-  }),
 })
 
 type LoginForm = z.infer<typeof loginSchema>
-
-const ROLES = [
-  { value: "medecin", label: "Médecin Déclarant" },
-  { value: "epidemiologiste", label: "Épidémiologiste DSP" },
-  { value: "admin", label: "Administrateur" },
-] as const
 
 export default function LoginPage() {
   const router = useRouter()
@@ -34,14 +25,10 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   })
-
-  const selectedRole = watch("role")
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true)
@@ -50,11 +37,10 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
-        role: data.role,
         redirect: false,
       })
       if (result?.error) {
-        setError("Email, mot de passe ou rôle incorrect.")
+        setError("Email ou mot de passe incorrect.")
       } else {
         router.push("/dashboard")
         router.refresh()
@@ -67,132 +53,127 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "linear-gradient(135deg, #E8F0FE 0%, #ffffff 100%)" }}
-    >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden" style={{ backgroundColor: "#0F1A2E" }}>
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-10" style={{ background: "radial-gradient(circle, #1B4F8A 0%, transparent 70%)" }} />
+
+      <div className="w-full max-w-[380px] relative">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 text-white font-bold text-xl"
-            style={{ backgroundColor: "#1B4F8A" }}
-          >
-            EHU
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 relative" style={{ background: "linear-gradient(135deg, #1B4F8A 0%, #2563EB 100%)" }}>
+            <Shield size={24} className="text-white" />
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
           </div>
-          <h1 className="text-2xl font-semibold text-gray-800">Se Connecter</h1>
-          <p className="text-sm text-gray-500 mt-1">Surveillance Épidémiologique — Oran</p>
+          <h1 className="text-[22px] font-bold text-white tracking-tight">Bienvenue</h1>
+          <p className="text-[13px] text-white/40 mt-1">Système de Surveillance Épidémiologique — EHU Oran</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email institutionnel
-            </label>
-            <input
-              {...register("email")}
-              type="email"
-              placeholder="prenom.nom@ehu-oran.dz"
-              className={cn(
-                "w-full h-10 px-3 rounded-lg border text-sm outline-none transition-all",
-                "border-gray-300 focus:border-[#1B4F8A] focus:ring-2 focus:ring-[#1B4F8A]/15",
-                errors.email && "border-red-500 bg-red-50"
-              )}
-            />
-            {errors.email && (
-              <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
-            </label>
-            <div className="relative">
+        {/* Card */}
+        <div className="bg-white/[0.06] backdrop-blur-xl rounded-2xl border border-white/10 p-7 shadow-2xl">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label className="block text-[12px] font-medium text-white/60 mb-1.5">
+                Email institutionnel
+              </label>
               <input
-                {...register("password")}
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                {...register("email")}
+                type="email"
+                placeholder="prenom.nom@ehu-oran.dz"
+                autoComplete="email"
                 className={cn(
-                  "w-full h-10 px-3 pr-10 rounded-lg border text-sm outline-none transition-all",
-                  "border-gray-300 focus:border-[#1B4F8A] focus:ring-2 focus:ring-[#1B4F8A]/15",
-                  errors.password && "border-red-500 bg-red-50"
+                  "w-full h-10 px-3 rounded-lg text-[13px] outline-none transition-all",
+                  "bg-white/[0.07] border border-white/10 text-white placeholder:text-white/25",
+                  "focus:border-white/25 focus:bg-white/[0.09] focus:ring-1 focus:ring-white/10",
+                  errors.email && "border-red-400/60 bg-red-500/5"
                 )}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {errors.email && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <AlertCircle size={11} />
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-            {errors.password && (
-              <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>
-            )}
-          </div>
 
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rôle
-            </label>
-            <div className="space-y-2">
-              {ROLES.map((role) => (
-                <label
-                  key={role.value}
+            {/* Password */}
+            <div>
+              <label className="block text-[12px] font-medium text-white/60 mb-1.5">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <input
+                  {...register("password")}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all",
-                    selectedRole === role.value
-                      ? "border-[#1B4F8A] bg-[#EEF4FF]"
-                      : "border-gray-200 hover:border-gray-300"
+                    "w-full h-10 px-3 pr-10 rounded-lg text-[13px] outline-none transition-all",
+                    "bg-white/[0.07] border border-white/10 text-white placeholder:text-white/25",
+                    "focus:border-white/25 focus:bg-white/[0.09] focus:ring-1 focus:ring-white/10",
+                    errors.password && "border-red-400/60 bg-red-500/5"
                   )}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  tabIndex={-1}
                 >
-                  <input
-                    type="radio"
-                    value={role.value}
-                    checked={selectedRole === role.value}
-                    onChange={() => setValue("role", role.value)}
-                    className="accent-[#1B4F8A]"
-                  />
-                  <span className="text-sm font-medium text-gray-700">{role.label}</span>
-                </label>
-              ))}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <AlertCircle size={11} />
+                  {errors.password.message}
+                </p>
+              )}
             </div>
-            {errors.role && (
-              <p className="text-xs text-red-600 mt-1">{errors.role.message}</p>
-            )}
-          </div>
 
-          {/* Error */}
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-              {error}
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-400/20">
+                <AlertCircle size={14} className="text-red-400 shrink-0" />
+                <p className="text-[13px] text-red-300">{error}</p>
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={cn(
+                "w-full h-11 rounded-lg text-white text-[13px] font-semibold transition-all",
+                "bg-[#1B4F8A] hover:bg-[#2563EB] active:bg-[#1D4ED8]",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "flex items-center justify-center gap-2",
+                "shadow-lg shadow-blue-500/10"
+              )}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  Connexion...
+                </>
+              ) : (
+                "Se Connecter"
+              )}
+            </button>
+
+            <div className="text-center">
+              <a href="/forgot-password" className="text-[12px] text-white/35 hover:text-white/60 transition-colors">
+                Mot de passe oublié ?
+              </a>
             </div>
-          )}
+          </form>
+        </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={cn(
-              "w-full h-12 rounded-lg text-white font-medium text-sm transition-all",
-              "bg-[#1B4F8A] hover:bg-[#153E6E] active:bg-[#102F54]",
-              "disabled:opacity-60 disabled:cursor-not-allowed"
-            )}
-          >
-            {loading ? "Connexion en cours..." : "Se Connecter"}
-          </button>
-
-          <div className="text-center">
-            <a href="/forgot-password" className="text-sm text-[#1B4F8A] hover:underline">
-              Mot de passe oublié ?
-            </a>
-          </div>
-        </form>
+        {/* Footer */}
+        <p className="text-center text-[11px] text-white/20 mt-6">
+          EHU Oran — Surveillance des Maladies à Déclaration Obligatoire
+        </p>
       </div>
     </div>
   )

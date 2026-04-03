@@ -8,7 +8,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ maladie
   const { maladieId } = await params
   const protocole = await prisma.protocole.findUnique({
     where: { maladieId },
-    include: { maladie: { select: { nom: true, codeMdo: true, seuilAlerte: true } } },
+    include: { maladie: { select: { nom: true, codeCim10: true, seuilDefaut: true } } },
   })
   if (!protocole) return NextResponse.json(null)
   return NextResponse.json(protocole)

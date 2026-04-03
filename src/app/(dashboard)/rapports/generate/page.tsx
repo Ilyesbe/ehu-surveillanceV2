@@ -17,6 +17,7 @@ export default function GenerateRapportPage() {
   const [type, setType] = useState("mensuel")
   const [dateDebut, setDateDebut] = useState("")
   const [dateFin, setDateFin] = useState("")
+  const [service, setService] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,7 +60,7 @@ export default function GenerateRapportPage() {
       const res = await fetch("/api/rapports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, dateDebut, dateFin }),
+        body: JSON.stringify({ type, dateDebut, dateFin, service: service.trim() || undefined }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -114,6 +115,19 @@ export default function GenerateRapportPage() {
               <input type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} required className={inputCls} />
             </div>
           </div>
+        </div>
+
+        {/* Service filter */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">Filtre par Service <span className="font-normal text-gray-400">(optionnel)</span></h2>
+          <p className="text-xs text-gray-400 mb-3">Laissez vide pour inclure tous les services</p>
+          <input
+            type="text"
+            value={service}
+            onChange={e => setService(e.target.value)}
+            placeholder="Ex: Médecine interne, Pédiatrie..."
+            className={inputCls}
+          />
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}

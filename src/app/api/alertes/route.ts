@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
   // Create notifications for all epidemiologistes and admins
   const users = await prisma.user.findMany({
-    where: { role: { in: ["epidemiologiste", "admin"] }, isActive: true },
+    where: { isActive: true, userRoles: { some: { role: { slug: { in: ["epidemiologiste", "admin"] } } } } },
     select: { id: true },
   })
 
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
   // Send email notifications (non-blocking)
   const { sendAlertEmail } = await import("@/lib/email")
   const userEmails = await prisma.user.findMany({
-    where: { role: { in: ["epidemiologiste", "admin"] }, isActive: true },
+    where: { isActive: true, userRoles: { some: { role: { slug: { in: ["epidemiologiste", "admin"] } } } } },
     select: { email: true },
   })
   sendAlertEmail(

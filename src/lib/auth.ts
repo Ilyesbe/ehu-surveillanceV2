@@ -6,6 +6,8 @@ import { z } from "zod"
 
 interface EHUUser extends NextAuthUser {
   role: string
+  roles: string[]
+  permissions: string[]
   etablissementId?: string | null
   wilayadId?: string | null
 }
@@ -13,7 +15,6 @@ interface EHUUser extends NextAuthUser {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["medecin", "epidemiologiste", "admin"]),
 })
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -23,15 +24,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials)
         if (!parsed.success) return null
 
-        const { email, password, role } = parsed.data
+        const { email, password } = parsed.data
 
         const user = await prisma.user.findUnique({
           where: { email },
-          include: { etablissement: true, wilaya: true },
+          include: {
+            etablissement: true,
+            wilaya: true,
+            userRoles: {
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: { include: { permission: true } },
+                  },
+                },
+              },
+            },
+          },
         })
 
         if (!user || !user.isActive) return null
-        if (user.role !== role) return null
 
         const passwordMatch = await bcrypt.compare(password, user.passwordHash)
         if (!passwordMatch) return null
@@ -41,11 +53,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           data: { lastLogin: new Date() },
         })
 
+        const roles = user.userRoles.map((ur) => ur.role.slug)
+        const permissions = [
+          ...new Set(
+            user.userRoles.flatMap((ur) =>
+              ur.role.rolePermissions.map((rp) => rp.permission.slug)
+            )
+          ),
+        ]
+        // Primary role for backward compatibility
+        const primaryRole = roles[0] ?? "medecin"
+
         return {
           id: user.id,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
-          role: user.role,
+          role: primaryRole,
+          roles,
+          permissions,
           etablissementId: user.etablissementId,
           wilayadId: user.wilayadId,
         }
@@ -57,6 +82,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = (user as EHUUser).role
+        token.roles = (user as EHUUser).roles
+        token.permissions = (user as EHUUser).permissions
         token.etablissementId = (user as EHUUser).etablissementId
         token.wilayadId = (user as EHUUser).wilayadId
       }
@@ -66,6 +93,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.roles = token.roles as string[]
+        session.user.permissions = token.permissions as string[]
         session.user.etablissementId = token.etablissementId as string
         session.user.wilayadId = token.wilayadId as string
       }
@@ -78,6 +107,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 60, // 30 minutes
+    maxAge: 30 * 60,
   },
 })

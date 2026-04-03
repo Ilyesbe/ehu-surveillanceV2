@@ -7,7 +7,7 @@ export default async function MaladiesPage() {
   const session = await auth()
   if (session?.user.role !== "admin") redirect("/dashboard")
 
-  const maladies = await prisma.maladie.findMany({ orderBy: { codeMdo: "asc" } })
+  const maladies = await prisma.maladie.findMany({ orderBy: { codeCim10: "asc" } })
 
   return (
     <div>
@@ -20,7 +20,7 @@ export default async function MaladiesPage() {
         <table className="w-full">
           <thead>
             <tr style={{ backgroundColor: "#F5F6F7" }}>
-              {["Code MDO", "Nom", "Catégorie", "Seuil Alerte", "Statut"].map(h => (
+              {["Code CIM-10", "Nom", "Catégorie", "Seuil Alerte", "Statut"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">{h}</th>
               ))}
             </tr>
@@ -28,10 +28,10 @@ export default async function MaladiesPage() {
           <tbody>
             {maladies.map((m, i) => (
               <tr key={m.id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"} style={{ borderBottom: "1px solid #EBEDEF" }}>
-                <td className="px-4 py-3 text-sm font-mono text-gray-600">{m.codeMdo}</td>
+                <td className="px-4 py-3 text-sm font-mono text-gray-600">{m.codeCim10}</td>
                 <td className="px-4 py-3 text-sm font-medium text-gray-800">{m.nom}</td>
                 <td className="px-4 py-3 text-sm text-gray-500">{m.categorie}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{m.seuilAlerte} cas / 30j</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{m.seuilDefaut ?? 5} cas / 30j</td>
                 <td className="px-4 py-3">
                   <span className="text-xs font-medium px-2 py-1 rounded-full" style={{ color: m.isActive ? "#047857" : "#B91C1C", backgroundColor: m.isActive ? "#ECFDF5" : "#FEF2F2" }}>
                     {m.isActive ? "Active" : "Inactive"}

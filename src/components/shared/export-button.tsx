@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Download, FileSpreadsheet } from "lucide-react"
+import { Download, FileSpreadsheet, Loader2 } from "lucide-react"
 import { exportCasExcel } from "@/utils/export-excel"
 
 interface Props {
@@ -20,12 +20,10 @@ export default function ExportButton({ format = "csv", type = "cas", days = 30, 
     setLoading(true)
     try {
       if (format === "excel") {
-        // Fetch the JSON data, then generate Excel client-side
         const res = await fetch(`/api/export?format=json&type=${type}&days=${days}`)
         const rows = await res.json()
         await exportCasExcel(rows)
       } else {
-        // CSV — fetch as blob and download
         const res = await fetch(`/api/export?format=csv&type=${type}&days=${days}`)
         const blob = await res.blob()
         const url = window.URL.createObjectURL(blob)
@@ -40,17 +38,16 @@ export default function ExportButton({ format = "csv", type = "cas", days = 30, 
     }
   }
 
-  const Icon = format === "excel" ? FileSpreadsheet : Download
-  const iconColor = format === "excel" ? "text-green-600" : "text-gray-500"
+  const Icon = loading ? Loader2 : format === "excel" ? FileSpreadsheet : Download
 
   return (
     <button
       onClick={handleExport}
       disabled={loading}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
+      className="btn btn-secondary btn-sm"
     >
-      <Icon size={15} className={iconColor} />
-      {loading ? "Export..." : (label ?? defaultLabel)}
+      <Icon size={13} className={loading ? "animate-spin" : format === "excel" ? "text-green-600" : ""} />
+      {label ?? defaultLabel}
     </button>
   )
 }

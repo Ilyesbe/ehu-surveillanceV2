@@ -39,25 +39,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Dates invalides" }, { status: 400 })
     }
 
+    const serviceFilter = body.service ? String(body.service).trim() : null
+
     const since = dateDebut
     const until = new Date(dateFin)
     until.setHours(23, 59, 59, 999)
 
-    const [totalCas, casByMaladieRaw, casByCommuneRaw, weeklyRaw, ageRaw, statutRaw, totalAlertes, totalInvestigations] =
+    const baseWhere = {
+      createdAt: { gte: since, lte: until },
+      ...(serviceFilter ? { service: { contains: serviceFilter, mode: "insensitive" as const } } : {}),
+    }
+
+    const [totalCas, casByMaladieRaw, casByCommuneRaw, casByServiceRaw, weeklyRaw, ageRaw, statutRaw, totalAlertes, totalInvestigations] =
       await Promise.all([
-        prisma.casDeclare.count({ where: { createdAt: { gte: since, lte: until } } }),
+        prisma.casDeclare.count({ where: baseWhere }),
 
         prisma.casDeclare.groupBy({
           by: ["maladieId"],
           _count: { _all: true },
-          where: { createdAt: { gte: since, lte: until } },
+          where: baseWhere,
           orderBy: { _count: { maladieId: "desc" } },
         }),
 
         prisma.casDeclare.groupBy({
           by: ["communeId"],
           _count: { _all: true },
-          where: { createdAt: { gte: since, lte: until } },
+          where: baseWhere,
+        }),
+
+        prisma.casDeclare.groupBy({
+          by: ["service"],
+          _count: { _all: true },
+          where: baseWhere,
+          orderBy: { _count: { service: "desc" } },
         }),
 
         prisma.$queryRaw<{ week: string; count: bigint }[]>`
@@ -89,7 +103,7 @@ export async function POST(req: Request) {
         prisma.casDeclare.groupBy({
           by: ["statut"],
           _count: { _all: true },
-          where: { createdAt: { gte: since, lte: until } },
+          where: baseWhere,
         }),
 
         prisma.alerte.count({ where: { createdAt: { gte: since, lte: until } } }),
@@ -115,9 +129,11 @@ export async function POST(req: Request) {
         tauxConfirmation: totalCas > 0 ? Math.round((confirmes / totalCas) * 100) : 0,
         alertes: totalAlertes,
         investigations: totalInvestigations,
+        serviceFiltre: serviceFilter || null,
       },
       casByMaladie: casByMaladieRaw.map(r => ({ maladie: maladieMap[r.maladieId ?? ""] ?? "—", count: r._count._all })),
       casByCommune: casByCommuneRaw.map(r => ({ commune: communeMap[r.communeId ?? ""] ?? "—", count: r._count._all })),
+      casByService: casByServiceRaw.map(r => ({ service: r.service ?? "Non spécifié", count: r._count._all })),
       weeklyTrend: weeklyRaw.map(r => ({ date: r.week, count: Number(r.count) })),
       ageDistribution: ageRaw.map(r => ({ name: r.tranche, count: Number(r.count) })),
       statutDistribution: statutRaw.map(r => ({ name: r.statut, count: r._count._all })),
@@ -137,10 +153,12 @@ export async function POST(req: Request) {
       ? `Rapport Annuel — ${dateDebut.getFullYear()}`
       : `Rapport Personnalisé — ${dateDebut.toLocaleDateString("fr-FR")} au ${dateFin.toLocaleDateString("fr-FR")}`
 
+    const titreAvecService = serviceFilter ? `${titre} · ${serviceFilter}` : titre
+
     const rapport = await prisma.rapport.create({
       data: {
         type: body.type ?? "personnalise",
-        titre,
+        titre: titreAvecService,
         dateDebut,
         dateFin,
         donnees,

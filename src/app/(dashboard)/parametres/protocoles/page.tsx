@@ -11,7 +11,7 @@ interface Protocole {
   isActive: boolean
   createdAt: string
   updatedAt: string
-  maladie: { nom: string; codeMdo: string }
+  maladie: { nom: string; codeCim10: string }
 }
 
 export default function ProtocoesPage() {
@@ -82,7 +82,7 @@ export default function ProtocoesPage() {
                   <td className="px-5 py-3 text-sm font-medium text-gray-800">{p.maladie.nom}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 max-w-xs truncate">{p.titre}</td>
                   <td className="px-5 py-3">
-                    <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{p.maladie.codeMdo}</span>
+                    <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{p.maladie.codeCim10}</span>
                   </td>
                   <td className="px-5 py-3 text-sm text-gray-500">v{p.version}</td>
                   <td className="px-5 py-3 text-xs text-gray-400">{new Date(p.updatedAt).toLocaleDateString("fr-FR")}</td>

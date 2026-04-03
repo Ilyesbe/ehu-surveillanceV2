@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
       include: {
         patient: { select: { firstName: true, lastName: true, dateOfBirth: true, sex: true } },
-        maladie: { select: { nom: true, codeMdo: true } },
+        maladie: { select: { nom: true, codeCim10: true } },
         commune: { select: { nom: true } },
         medecin: { select: { firstName: true, lastName: true } },
       },
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       "Patient": `${c.patient.firstName} ${c.patient.lastName}`,
       "Sexe": c.patient.sex,
       "Maladie": c.maladie.nom,
-      "Code MDO": c.maladie.codeMdo,
+      "Code CIM-10": c.maladie.codeCim10,
       "Commune": c.commune?.nom ?? "",
       "Statut": c.statut,
       "Mode Confirmation": c.modeConfirmation,

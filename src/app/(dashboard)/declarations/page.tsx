@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import Link from "next/link"
+import { Plus } from "lucide-react"
 import CasListTable from "@/components/declarations/cas-list-table"
 import ExportButton from "@/components/shared/export-button"
 
@@ -10,10 +11,10 @@ export default async function DeclarationsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Liste des Cas</h1>
-          <p className="text-sm text-gray-500 mt-1">Cas déclarés dans le système</p>
+          <h1 className="page-title">Cas Déclarés</h1>
+          <p className="page-subtitle">Gestion des déclarations de cas épidémiologiques</p>
         </div>
         <div className="flex items-center gap-2">
           {canExport && (
@@ -23,8 +24,9 @@ export default async function DeclarationsPage() {
             </>
           )}
           {["medecin", "epidemiologiste", "admin"].includes(userRole) && (
-            <Link href="/declarations/new" className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors" style={{ backgroundColor: "#1B4F8A" }}>
-              + Nouvelle Déclaration
+            <Link href="/declarations/new" className="btn btn-primary">
+              <Plus size={15} />
+              Nouvelle Déclaration
             </Link>
           )}
         </div>

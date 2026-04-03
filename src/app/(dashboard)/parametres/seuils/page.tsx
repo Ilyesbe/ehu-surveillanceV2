@@ -13,12 +13,12 @@ interface Seuil {
   autoAlerte: boolean
   autoNotification: boolean
   isActive: boolean
-  maladie: { nom: string; codeMdo: string }
+  maladie: { nom: string; codeCim10: string }
   commune: { nom: string } | null
   wilaya: { nom: string } | null
 }
 
-interface Maladie { id: string; nom: string; codeMdo: string }
+interface Maladie { id: string; nom: string; codeCim10: string }
 interface Commune { id: string; nom: string }
 
 const GRAVITE_BADGES: Record<string, { label: string; bg: string; color: string }> = {

@@ -8,7 +8,7 @@ export async function GET() {
 
   const protocoles = await prisma.protocole.findMany({
     where: { isActive: true },
-    include: { maladie: { select: { nom: true, codeMdo: true } } },
+    include: { maladie: { select: { nom: true, codeCim10: true } } },
     orderBy: { createdAt: "desc" },
   })
   return NextResponse.json(protocoles)

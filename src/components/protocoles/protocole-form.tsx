@@ -8,7 +8,7 @@ interface Action { action: string; detail: string; obligatoire: boolean }
 interface Section { titre: string; priorite: string; actions: Action[] }
 interface JsonContent { sections: Section[] }
 
-interface Maladie { id: string; nom: string; codeMdo: string }
+interface Maladie { id: string; nom: string; codeCim10: string }
 
 interface ProtocoleFormData {
   maladieId: string
@@ -142,7 +142,7 @@ export default function ProtocoleForm({ initial }: Props) {
   const [investigationSteps, setInvestigationSteps] = useState<JsonContent>(initial?.investigationSteps ?? emptyContent())
 
   useEffect(() => {
-    fetch("/api/maladies").then(r => r.json()).then(setMaladies).catch(console.error)
+    fetch("/api/maladies").then(r => r.json()).then(d => setMaladies(d.maladies ?? d)).catch(console.error)
   }, [])
 
   // Auto-fill titre when maladie selected
@@ -198,7 +198,7 @@ export default function ProtocoleForm({ initial }: Props) {
             >
               <option value="">Sélectionner une maladie</option>
               {maladies.map(m => (
-                <option key={m.id} value={m.id}>{m.nom} ({m.codeMdo})</option>
+                <option key={m.id} value={m.id}>{m.nom} ({m.codeCim10})</option>
               ))}
             </select>
           </div>

@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
+import { MALADIES_SEED } from "./seeds/maladies"
+import { PERMISSIONS_SEED, ROLES_SEED } from "./seeds/roles-permissions"
 
 const prisma = new PrismaClient()
 
@@ -35,29 +37,6 @@ const COMMUNES_ORAN = [
   { nom: "Sidi Chami", lat: 35.63, lng: -0.59 },
 ]
 
-const MALADIES_MDO = [
-  { nom: "Choléra", codeMdo: "MDO-001", categorie: "Maladies à transmission hydrique", seuilAlerte: 1 },
-  { nom: "Typhoïde", codeMdo: "MDO-002", categorie: "Maladies à transmission hydrique", seuilAlerte: 5 },
-  { nom: "Hépatite A", codeMdo: "MDO-003", categorie: "Maladies à transmission hydrique", seuilAlerte: 10 },
-  { nom: "Paludisme", codeMdo: "MDO-004", categorie: "Maladies parasitaires", seuilAlerte: 3 },
-  { nom: "Leishmaniose cutanée", codeMdo: "MDO-005", categorie: "Maladies parasitaires", seuilAlerte: 10 },
-  { nom: "Leishmaniose viscérale", codeMdo: "MDO-006", categorie: "Maladies parasitaires", seuilAlerte: 3 },
-  { nom: "Méningite bactérienne", codeMdo: "MDO-007", categorie: "Maladies à prévention vaccinale", seuilAlerte: 3 },
-  { nom: "Rougeole", codeMdo: "MDO-008", categorie: "Maladies à prévention vaccinale", seuilAlerte: 5 },
-  { nom: "Coqueluche", codeMdo: "MDO-009", categorie: "Maladies à prévention vaccinale", seuilAlerte: 5 },
-  { nom: "Diphtérie", codeMdo: "MDO-010", categorie: "Maladies à prévention vaccinale", seuilAlerte: 1 },
-  { nom: "Tétanos", codeMdo: "MDO-011", categorie: "Maladies à prévention vaccinale", seuilAlerte: 1 },
-  { nom: "Poliomyélite", codeMdo: "MDO-012", categorie: "Maladies à prévention vaccinale", seuilAlerte: 1 },
-  { nom: "Tuberculose pulmonaire", codeMdo: "MDO-013", categorie: "Maladies respiratoires", seuilAlerte: 10 },
-  { nom: "COVID-19", codeMdo: "MDO-014", categorie: "Maladies respiratoires", seuilAlerte: 20 },
-  { nom: "Grippe saisonnière", codeMdo: "MDO-015", categorie: "Maladies respiratoires", seuilAlerte: 50 },
-  { nom: "Brucellose", codeMdo: "MDO-016", categorie: "Zoonoses", seuilAlerte: 5 },
-  { nom: "Rage", codeMdo: "MDO-017", categorie: "Zoonoses", seuilAlerte: 1 },
-  { nom: "Anthrax", codeMdo: "MDO-018", categorie: "Zoonoses", seuilAlerte: 1 },
-  { nom: "Fièvre typhoïde", codeMdo: "MDO-019", categorie: "Maladies entériques", seuilAlerte: 5 },
-  { nom: "Dysenterie bacillaire", codeMdo: "MDO-020", categorie: "Maladies entériques", seuilAlerte: 10 },
-]
-
 async function main() {
   console.log("Starting seed...")
 
@@ -73,109 +52,124 @@ async function main() {
     wilayas[w.code] = wilaya.id
   }
 
-  // Communes d'Oran
-  console.log("Seeding communes d'Oran...")
+  // Communes Oran
+  console.log("Seeding communes Oran...")
   const oranId = wilayas["31"]
   for (const c of COMMUNES_ORAN) {
     const existing = await prisma.commune.findFirst({ where: { nom: c.nom, wilayadId: oranId } })
     if (!existing) {
       await prisma.commune.create({
-        data: {
-          nom: c.nom,
-          wilayadId: oranId,
-          latitude: c.lat,
-          longitude: c.lng,
-        },
+        data: { nom: c.nom, wilayadId: oranId, latitude: c.lat, longitude: c.lng },
       })
     }
   }
 
-  // Maladies MDO
-  console.log("Seeding maladies MDO...")
-  for (const m of MALADIES_MDO) {
+  // 83 Maladies CIM-10
+  console.log("Seeding 83 maladies CIM-10...")
+  for (const m of MALADIES_SEED) {
     await prisma.maladie.upsert({
-      where: { codeMdo: m.codeMdo },
-      update: { nom: m.nom, categorie: m.categorie, seuilAlerte: m.seuilAlerte },
-      create: { ...m, isActive: true },
+      where: { codeCim10: m.codeCim10 },
+      update: {
+        nom: m.nom, categorie: m.categorie, nomCourt: m.nomCourt,
+        seuilDefaut: m.seuilDefaut, categorieGravite: m.categorieGravite,
+        delaiNotificationHeures: m.delaiNotificationHeures,
+        hasFicheSpecifique: m.hasFicheSpecifique,
+        ficheSpecifiqueSlug: (m as { ficheSpecifiqueSlug?: string }).ficheSpecifiqueSlug ?? null,
+      },
+      create: {
+        nom: m.nom, codeCim10: m.codeCim10, categorie: m.categorie,
+        nomCourt: m.nomCourt ?? null, seuilDefaut: m.seuilDefaut ?? null,
+        categorieGravite: m.categorieGravite ?? null,
+        delaiNotificationHeures: m.delaiNotificationHeures ?? null,
+        hasFicheSpecifique: m.hasFicheSpecifique,
+        ficheSpecifiqueSlug: (m as { ficheSpecifiqueSlug?: string }).ficheSpecifiqueSlug ?? null,
+        isActive: true,
+      },
     })
   }
 
-  // Etablissement EHU Oran
+  // Etablissement EHU
   console.log("Seeding EHU Oran...")
   const oranCommune = await prisma.commune.findFirst({ where: { nom: "Oran", wilayadId: oranId } })
   let ehu = await prisma.etablissement.findFirst({ where: { nom: "EHU Oran" } })
   if (!ehu) {
     ehu = await prisma.etablissement.create({
-      data: {
-        nom: "EHU Oran",
-        type: "CHU",
-        communeId: oranCommune?.id,
-        wilayadId: oranId,
-        adresse: "BP 4166 Ibn Rochd, Oran 31000",
-      },
+      data: { nom: "EHU Oran", type: "CHU", communeId: oranCommune?.id, wilayadId: oranId, adresse: "BP 4166 Ibn Rochd, Oran 31000" },
     })
   }
 
-  // Admin user
-  console.log("Seeding admin user...")
-  const passwordHash = await bcrypt.hash("Admin@1234", 12)
-  await prisma.user.upsert({
+  // 30 Permissions
+  console.log("Seeding 30 permissions...")
+  const permissionIds: Record<string, string> = {}
+  for (const p of PERMISSIONS_SEED) {
+    const perm = await prisma.permission.upsert({
+      where: { slug: p.slug },
+      update: { name: p.name, module: p.module },
+      create: { slug: p.slug, name: p.name, module: p.module },
+    })
+    permissionIds[p.slug] = perm.id
+  }
+
+  // 3 Roles
+  console.log("Seeding 3 roles systeme...")
+  const roleIds: Record<string, string> = {}
+  for (const r of ROLES_SEED) {
+    const role = await prisma.role.upsert({
+      where: { slug: r.slug },
+      update: { name: r.name, description: r.description, color: r.color },
+      create: { name: r.name, slug: r.slug, description: r.description, color: r.color, isSystem: r.isSystem, isActive: true },
+    })
+    roleIds[r.slug] = role.id
+    for (const permSlug of r.permissions) {
+      const permId = permissionIds[permSlug]
+      if (!permId) continue
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permId } },
+        update: {},
+        create: { roleId: role.id, permissionId: permId },
+      })
+    }
+  }
+
+  // Demo users
+  console.log("Seeding demo users...")
+  const adminHash = await bcrypt.hash("Admin@1234", 12)
+  const admin = await prisma.user.upsert({
     where: { email: "admin@ehu-oran.dz" },
     update: {},
-    create: {
-      email: "admin@ehu-oran.dz",
-      passwordHash,
-      firstName: "Admin",
-      lastName: "Système",
-      role: "admin",
-      etablissementId: ehu.id,
-      wilayadId: oranId,
-      isActive: true,
-    },
+    create: { email: "admin@ehu-oran.dz", passwordHash: adminHash, firstName: "Admin", lastName: "Systeme", etablissementId: ehu.id, wilayadId: oranId, isActive: true },
+  })
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: admin.id, roleId: roleIds["admin"] } },
+    update: {}, create: { userId: admin.id, roleId: roleIds["admin"] },
   })
 
-  // Demo médecin
   const medecinHash = await bcrypt.hash("Medecin@1234", 12)
-  await prisma.user.upsert({
+  const medecin = await prisma.user.upsert({
     where: { email: "medecin@ehu-oran.dz" },
     update: {},
-    create: {
-      email: "medecin@ehu-oran.dz",
-      passwordHash: medecinHash,
-      firstName: "Dr. Ahmed",
-      lastName: "Benali",
-      role: "medecin",
-      etablissementId: ehu.id,
-      wilayadId: oranId,
-      isActive: true,
-    },
+    create: { email: "medecin@ehu-oran.dz", passwordHash: medecinHash, firstName: "Dr. Ahmed", lastName: "Benali", etablissementId: ehu.id, wilayadId: oranId, isActive: true },
+  })
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: medecin.id, roleId: roleIds["medecin"] } },
+    update: {}, create: { userId: medecin.id, roleId: roleIds["medecin"] },
   })
 
-  // Demo épidémiologiste
   const epidHash = await bcrypt.hash("Epidemio@1234", 12)
-  await prisma.user.upsert({
+  const epid = await prisma.user.upsert({
     where: { email: "epidemio@ehu-oran.dz" },
     update: {},
-    create: {
-      email: "epidemio@ehu-oran.dz",
-      passwordHash: epidHash,
-      firstName: "Dr. Fatima",
-      lastName: "Hadj",
-      role: "epidemiologiste",
-      etablissementId: ehu.id,
-      wilayadId: oranId,
-      isActive: true,
-    },
+    create: { email: "epidemio@ehu-oran.dz", passwordHash: epidHash, firstName: "Dr. Fatima", lastName: "Hadj", etablissementId: ehu.id, wilayadId: oranId, isActive: true },
+  })
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: epid.id, roleId: roleIds["epidemiologiste"] } },
+    update: {}, create: { userId: epid.id, roleId: roleIds["epidemiologiste"] },
   })
 
-  console.log("Seed complete!")
-  console.log("")
-  console.log("Demo accounts:")
-  console.log("  admin@ehu-oran.dz / Admin@1234 (admin)")
-  console.log("  medecin@ehu-oran.dz / Medecin@1234 (medecin)")
-  console.log("  epidemio@ehu-oran.dz / Epidemio@1234 (epidemiologiste)")
+  console.log("\nSeed complete!")
+  console.log("  admin@ehu-oran.dz     / Admin@1234")
+  console.log("  medecin@ehu-oran.dz   / Medecin@1234")
+  console.log("  epidemio@ehu-oran.dz  / Epidemio@1234")
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect())
+main().catch(console.error).finally(() => prisma.$disconnect())

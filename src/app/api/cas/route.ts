@@ -13,10 +13,12 @@ export async function GET(req: Request) {
   const statut = searchParams.get("statut") ?? ""
   const maladieId = searchParams.get("maladieId") ?? ""
   const search = searchParams.get("search") ?? ""
+  const service = searchParams.get("service") ?? ""
 
   const where: Record<string, unknown> = {}
   if (statut) where.statut = statut
   if (maladieId) where.maladieId = maladieId
+  if (service) where.service = { contains: service, mode: "insensitive" }
   if (search) {
     where.OR = [
       { patient: { firstName: { contains: search, mode: "insensitive" } } },
@@ -40,6 +42,12 @@ export async function GET(req: Request) {
         maladie: true,
         commune: true,
         medecin: { select: { firstName: true, lastName: true } },
+        etablissement: { select: { nom: true } },
+        symptomes: { include: { symptome: true } },
+        lieux: { orderBy: { ordre: "asc" } },
+        resultatsLabo: { include: { germe: true }, orderBy: { createdAt: "desc" } },
+        casSimilaireRef: { select: { id: true, codeCas: true, patient: { select: { firstName: true, lastName: true } }, maladie: { select: { nom: true } } } },
+        structureHospitalisation: { select: { id: true, nom: true } },
       },
     }),
     prisma.casDeclare.count({ where }),
@@ -51,8 +59,25 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
-  if (!["medecin", "epidemiologiste", "admin"].includes(session.user.role)) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
+
+  // Check permissions — first from JWT, then fallback to DB lookup
+  let perms: string[] = session.user.permissions ?? []
+  if (!perms.includes("cas.create")) {
+    // JWT might be stale — check DB directly
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        userRoles: {
+          include: { role: { include: { rolePermissions: { include: { permission: true } } } } },
+        },
+      },
+    })
+    if (dbUser) {
+      perms = dbUser.userRoles.flatMap(ur => ur.role.rolePermissions.map(rp => rp.permission.slug))
+    }
+    if (!perms.includes("cas.create")) {
+      return NextResponse.json({ error: "Permission refusée — veuillez vous déconnecter et vous reconnecter" }, { status: 403 })
+    }
   }
 
   try {
@@ -64,7 +89,7 @@ export async function POST(req: Request) {
         identifiant: generatePatientId(),
         firstName: body.patient.firstName,
         lastName: body.patient.lastName,
-        dateOfBirth: new Date(body.patient.dateOfBirth),
+        dateOfBirth: body.patient.dateOfBirth ? new Date(body.patient.dateOfBirth) : new Date(),
         sex: body.patient.sex,
         address: body.patient.address,
         communeId: body.patient.communeId || null,
@@ -73,6 +98,7 @@ export async function POST(req: Request) {
     })
 
     // Create case
+    const data = body
     const cas = await prisma.casDeclare.create({
       data: {
         codeCas: generateCaseCode(),
@@ -80,7 +106,7 @@ export async function POST(req: Request) {
         maladieId: body.maladieId,
         dateDebutSymptomes: new Date(body.dateDebutSymptomes),
         dateDiagnostic: new Date(body.dateDiagnostic),
-        modeConfirmation: body.modeConfirmation,
+        modeConfirmation: body.modeConfirmation || null,
         resultatLabo: body.resultatLabo || null,
         statut: "nouveau",
         etablissementId: body.etablissementId || session.user.etablissementId || null,
@@ -88,12 +114,92 @@ export async function POST(req: Request) {
         medecinId: session.user.id,
         notesCliniques: body.notesCliniques || null,
         communeId: body.patient.communeId || null,
+        // Phase C — MDO Form exact fields
+        nin: data.nin || null,
+        ageAns: data.ageAns || null,
+        ageMois: data.ageMois || null,
+        ageJours: data.ageJours || null,
+        profession: data.profession || null,
+        emailPatient: data.emailPatient || null,
+        lieuTravail: data.lieuTravail || null,
+        estEtranger: data.estEtranger ?? null,
+        nationalite: data.nationalite || null,
+        symptomesTexte: data.symptomesTexte || null,
+        observation: data.observation || null,
+        atcd: data.atcd || null,
+        lieuxFrequentes: data.lieuxFrequentes || null,
+        casSimilaire: data.casSimilaire ?? null,
+        estHospitalise: data.estHospitalise ?? null,
+        dateHospitalisation: data.dateHospitalisation ? new Date(data.dateHospitalisation) : null,
+        estEvacue: data.estEvacue ?? null,
+        dateEvacuation: data.dateEvacuation ? new Date(data.dateEvacuation) : null,
+        structureEvacuation: data.structureEvacuation || null,
+        typePrelevement: data.typePrelevement || null,
+        datePrelevement: data.datePrelevement ? new Date(data.datePrelevement) : null,
+        destinatairePrelevements: data.destinatairePrelevements || null,
+        evolution: data.evolution || null,
+        dateSortie: data.dateSortie ? new Date(data.dateSortie) : null,
+        dateDeces: data.dateDeces ? new Date(data.dateDeces) : null,
+        serviceDeclarant: data.serviceDeclarant || null,
+        moisDeclaration: data.moisDeclaration || null,
+        anneeDeclaration: data.anneeDeclaration || null,
+        ficheSpecifiqueType: data.ficheSpecifiqueType || null,
+        donneesSpecifiques: data.donneesSpecifiques ?? null,
+        // Phase E — Enhanced features
+        nationaliteCode: data.nationaliteCode || null,
+        casSimilaireId: data.casSimilaireId || null,
+        evaluationClinique: data.evaluationClinique ?? null,
+        structureHospitalisationId: data.structureHospitalisationId || null,
+        serviceHospitalisation: data.serviceHospitalisation || null,
       },
       include: {
         patient: true,
         maladie: true,
       },
     })
+
+    // Create symptome links
+    if (Array.isArray(data.symptomeIds) && data.symptomeIds.length > 0) {
+      await prisma.casSymptome.createMany({
+        data: data.symptomeIds.map((symptomeId: string) => ({
+          casId: cas.id,
+          symptomeId,
+        })),
+        skipDuplicates: true,
+      })
+    }
+
+    // Create lieux (up to 4)
+    if (Array.isArray(data.lieux) && data.lieux.length > 0) {
+      await prisma.casLieu.createMany({
+        data: data.lieux.slice(0, 4).map((lieu: { nom: string; type?: string; adresse?: string; communeId?: string; dateDebut?: string; dateFin?: string }, idx: number) => ({
+          casId: cas.id,
+          ordre: idx + 1,
+          nom: lieu.nom,
+          type: lieu.type || null,
+          adresse: lieu.adresse || null,
+          communeId: lieu.communeId || null,
+          dateDebut: lieu.dateDebut ? new Date(lieu.dateDebut) : null,
+          dateFin: lieu.dateFin ? new Date(lieu.dateFin) : null,
+        })),
+      })
+    }
+
+    // Create lab results
+    if (Array.isArray(data.resultatsLabo) && data.resultatsLabo.length > 0) {
+      await prisma.resultatLabo.createMany({
+        data: data.resultatsLabo.map((r: { typePrelevement: string; datePrelevement: string; germeId?: string; resultat?: string; antibiogramme?: string; laboratoire?: string; notes?: string }) => ({
+          casId: cas.id,
+          typePrelevement: r.typePrelevement,
+          datePrelevement: new Date(r.datePrelevement),
+          germeId: r.germeId || null,
+          resultat: r.resultat || null,
+          antibiogramme: r.antibiogramme || null,
+          laboratoire: r.laboratoire || null,
+          notes: r.notes || null,
+        })),
+      })
+    }
 
     // Check seuils configurés and trigger protocole if threshold exceeded
     let declenchement = null
@@ -160,7 +266,10 @@ export async function POST(req: Request) {
 
           if (seuil.autoNotification) {
             const users = await prisma.user.findMany({
-              where: { role: { in: ["epidemiologiste", "admin"] }, isActive: true },
+              where: {
+                isActive: true,
+                userRoles: { some: { role: { slug: { in: ["epidemiologiste", "admin"] } } } },
+              },
               select: { id: true, email: true },
             })
             await prisma.notification.createMany({
@@ -193,7 +302,8 @@ export async function POST(req: Request) {
         const recentCount = await prisma.casDeclare.count({
           where: { maladieId: body.maladieId, createdAt: { gte: since } },
         })
-        if (recentCount >= maladie.seuilAlerte) {
+        const seuil = maladie.seuilDefaut ?? 5
+        if (recentCount >= seuil) {
           const existingAlert = await prisma.alerte.findFirst({
             where: { maladieId: body.maladieId, statut: "active" },
           })
@@ -202,7 +312,7 @@ export async function POST(req: Request) {
               data: {
                 type: "seuil",
                 titre: `Seuil atteint — ${maladie.nom}`,
-                description: `${recentCount} cas de ${maladie.nom} en 30 jours (seuil: ${maladie.seuilAlerte})`,
+                description: `${recentCount} cas de ${maladie.nom} en 30 jours (seuil: ${seuil})`,
                 maladieId: maladie.id,
                 nombreCas: recentCount,
                 statut: "active",
@@ -215,7 +325,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ...cas, declenchement }, { status: 201 })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: "Erreur création cas" }, { status: 500 })
+    console.error("POST /api/cas error:", error)
+    const message = error instanceof Error ? error.message : "Erreur création cas"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

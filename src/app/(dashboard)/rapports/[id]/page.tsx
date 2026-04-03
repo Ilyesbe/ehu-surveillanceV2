@@ -91,13 +91,23 @@ export default function RapportDetailPage() {
         </div>
       </div>
 
+      {/* Service filter badge */}
+      {d.summary?.serviceFiltre && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-xs text-gray-500">Filtré par service :</span>
+          <span className="text-xs font-medium bg-blue-50 text-[#1B4F8A] px-3 py-1 rounded-full border border-blue-100">
+            {d.summary.serviceFiltre}
+          </span>
+        </div>
+      )}
+
       {/* KPI Summary */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Cas", value: d.summary?.total ?? 0, color: "#1B4F8A" },
-          { label: "Cas Confirmés", value: d.summary?.confirmes ?? 0, color: "#E74C3C" },
+          { label: "Cas Confirmés", value: d.summary?.confirmes ?? 0, color: "#27AE60" },
           { label: "Alertes", value: d.summary?.alertes ?? 0, color: "#F39C12" },
-          { label: "Investigations", value: d.summary?.investigations ?? 0, color: "#27AE60" },
+          { label: "Investigations", value: d.summary?.investigations ?? 0, color: "#E74C3C" },
         ].map(card => (
           <div key={card.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{card.label}</p>
@@ -141,6 +151,24 @@ export default function RapportDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Cas par service */}
+      {d.casByService?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-4">
+          <p className="text-sm font-semibold text-gray-700 mb-3">Cas par Service</p>
+          <ResponsiveContainer width="100%" height={Math.max(180, d.casByService.length * 36)}>
+            <BarChart data={d.casByService} layout="vertical" margin={{ left: 10, right: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#EBEDEF" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+              <YAxis type="category" dataKey="service" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={160} />
+              <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px" }} />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                {d.casByService.map((_: unknown, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         {/* Age distribution */}
