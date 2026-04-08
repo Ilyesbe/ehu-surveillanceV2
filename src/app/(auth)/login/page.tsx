@@ -1,8 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -17,7 +15,6 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -34,17 +31,30 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
+      // Get CSRF token first
+      const csrfRes = await fetch("/api/auth/csrf")
+      const { csrfToken } = await csrfRes.json()
+
+      // Post credentials directly to the callback endpoint
+      const res = await fetch("/api/auth/callback/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          csrfToken,
+          email: data.email,
+          password: data.password,
+        }),
+        redirect: "follow",
       })
-      if (result?.error) {
+
+      // If we get redirected to /login with error param, login failed
+      const url = new URL(res.url)
+      if (url.searchParams.has("error")) {
         setError("Email ou mot de passe incorrect.")
-      } else if (result?.ok) {
-        // Full page redirect to ensure session cookie is picked up
+      } else {
+        // Login succeeded — full page redirect to pick up session cookie
         window.location.href = "/dashboard"
-        return // Keep loading state while redirecting
+        return
       }
     } catch (err) {
       console.error("Login error:", err)
