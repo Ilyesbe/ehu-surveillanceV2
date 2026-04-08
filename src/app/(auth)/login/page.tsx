@@ -41,11 +41,13 @@ export default function LoginPage() {
       })
       if (result?.error) {
         setError("Email ou mot de passe incorrect.")
-      } else {
-        router.push("/dashboard")
-        router.refresh()
+      } else if (result?.ok) {
+        // Full page redirect to ensure session cookie is picked up
+        window.location.href = "/dashboard"
+        return // Keep loading state while redirecting
       }
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err)
       setError("Une erreur est survenue. Veuillez réessayer.")
     } finally {
       setLoading(false)
