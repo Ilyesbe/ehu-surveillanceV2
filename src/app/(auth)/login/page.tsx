@@ -31,21 +31,16 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true)
     setError(null)
-    try {
-      const formData = new FormData()
-      formData.append("email", data.email)
-      formData.append("password", data.password)
-      const result = await loginAction(formData)
-      if (result?.error) {
-        setError(result.error)
-      }
-    } catch {
-      // loginAction throws on successful redirect (Next.js internal mechanism)
-      // If we get here without a redirect, show error
-      setError("Une erreur est survenue. Veuillez réessayer.")
-    } finally {
-      setLoading(false)
+    const formData = new FormData()
+    formData.append("email", data.email)
+    formData.append("password", data.password)
+    const result = await loginAction(formData)
+    if (result.success) {
+      window.location.href = "/dashboard"
+      return
     }
+    setError(result.error || "Une erreur est survenue.")
+    setLoading(false)
   }
 
   return (
