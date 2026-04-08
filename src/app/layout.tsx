@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Providers from "./providers"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>{children}</body>
+      <body style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }
