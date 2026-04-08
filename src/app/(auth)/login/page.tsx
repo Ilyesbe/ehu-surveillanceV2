@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { cn } from "@/utils/cn"
 import { Eye, EyeOff, AlertCircle, Loader2, Shield } from "lucide-react"
+import { loginAction } from "./actions"
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -31,33 +32,16 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      // Get CSRF token first
-      const csrfRes = await fetch("/api/auth/csrf")
-      const { csrfToken } = await csrfRes.json()
-
-      // Post credentials directly to the callback endpoint
-      const res = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          csrfToken,
-          email: data.email,
-          password: data.password,
-        }),
-        redirect: "follow",
-      })
-
-      // If we get redirected to /login with error param, login failed
-      const url = new URL(res.url)
-      if (url.searchParams.has("error")) {
-        setError("Email ou mot de passe incorrect.")
-      } else {
-        // Login succeeded — full page redirect to pick up session cookie
-        window.location.href = "/dashboard"
-        return
+      const formData = new FormData()
+      formData.append("email", data.email)
+      formData.append("password", data.password)
+      const result = await loginAction(formData)
+      if (result?.error) {
+        setError(result.error)
       }
-    } catch (err) {
-      console.error("Login error:", err)
+    } catch {
+      // loginAction throws on successful redirect (Next.js internal mechanism)
+      // If we get here without a redirect, show error
       setError("Une erreur est survenue. Veuillez réessayer.")
     } finally {
       setLoading(false)
